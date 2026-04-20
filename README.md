@@ -1,5 +1,3 @@
-# AnnotateFilter
-
 **A Lucene TokenFilter that adds annotations**
 
 As Mike Mccandles describes in his <a href="https://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html">blog</a>: Lucene TokenStreams are actually graphs!
