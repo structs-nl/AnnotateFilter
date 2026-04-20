@@ -15,11 +15,14 @@
  * limitations under the License.
  */
 
-package nl.structs;
+package main.java.nl.structs;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
@@ -32,7 +35,8 @@ import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.CharsRefBuilder;
 import org.apache.lucene.util.RollingBuffer;
 
-public final class AnnotateFilter extends TokenFilter {
+public final class 
+AnnotateFilter extends TokenFilter {
 
   public static final String TOKEN_TYPE = "ANNOTATION";
 
@@ -323,7 +327,9 @@ public final class AnnotateFilter extends TokenFilter {
       if (currentAnnotation.startOffset >= inputStartOffset && currentAnnotation.startOffset <= inputEndOffset) {
 
         // System.out.println("match");
-        matches.add(new BufferedOutputToken(currentAnnotation.annotation, matchLength - 1,0, currentAnnotation.startOffset, currentAnnotation.endOffset,0, true));
+        matches.add(
+          new BufferedOutputToken(currentAnnotation.annotation, matchLength - 1,0, currentAnnotation.startOffset, currentAnnotation.endOffset,0, true)
+        );
 
         while (annotationIterator.hasNext()) {
             currentAnnotation = annotationIterator.next();
@@ -337,7 +343,9 @@ public final class AnnotateFilter extends TokenFilter {
 
             if (currentAnnotation.startOffset >= inputStartOffset && currentAnnotation.startOffset <= inputEndOffset) {
               // System.out.println("match");
-              matches.add(new BufferedOutputToken(currentAnnotation.annotation, matchLength - 1,0, currentAnnotation.startOffset, currentAnnotation.endOffset,0, true));
+              matches.add(
+                new BufferedOutputToken(currentAnnotation.annotation, matchLength - 1,0, currentAnnotation.startOffset, currentAnnotation.endOffset,0, true)
+              );
             }
         }
       }
@@ -407,46 +415,57 @@ public final class AnnotateFilter extends TokenFilter {
 
     // We have a list of matches and the tokens that where needed for these matches.
     // We know there is a start of a match at the current position
-    matches.sort((o1, o2) -> Integer.compare(o1.startOffset, o2.startOffset));
+
+    // Group the matches by their start position
+    SortedSet<Integer> uniqueStartPositions = new TreeSet<Integer>();
+
+    for(BufferedOutputToken token : matches)
+      uniqueStartPositions.add(Integer.valueOf(token.startPos));
 
     // First, output the token that started the match
-
-    outputBuffer.add(
-      new BufferedOutputToken(
-        lookahead.get(lookaheadNextRead).state
-    )); 
-
+    outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
     lookaheadNextRead++;
 
-    for (int i = 0; i < matches.size(); i++) {
+    // then, iterate the grouped startpositions
+    var posIterator  = uniqueStartPositions.iterator();
+    Integer previousPosition = -1;
 
-      // 1: output the match
-      var token = matches.get(i);
-      outputBuffer.add(token);
+    while (posIterator.hasNext()) {
+      var startPos = posIterator.next();
 
-      // 2: output the tokens until (<) the next match or the end of the match
+      // first, fill the gap with the previous match position with original tokens
+      if (previousPosition > -1) {
 
-      int untilToken;
+        int gap = startPos - previousPosition;
 
-      if (i < matches.size() - 1){
-        // not the last match. get the next one
-        var nextMatch = matches.get(i+1);
-        untilToken = nextMatch.startPos;
-
-      } else {
-        untilToken = matchLength;
+        for (int j = 0; j < gap; j++) {
+          outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
+          lookaheadNextRead++;
+        }
       }
 
-      // TODO check the nextRead logic
+      // then, output all matches starting at this position
+      for(BufferedOutputToken match : matches) {
+        if (Integer.valueOf(match.startPos) == startPos) {
+          outputBuffer.add(match);
+        }
+      }
 
-      while ( (lookaheadNextRead -1) < untilToken - 1) {
+      if (posIterator.hasNext()) {
+        // remember the current position as the previous one for the next iteration
+        previousPosition = startPos;
 
-          outputBuffer.add(
-            new BufferedOutputToken(
-              lookahead.get(lookaheadNextRead).state
-          )); 
+      } else {
 
+        // last match: fill until the end of the match with original tokens
+        // TODO check!!
+      
+        int gap = (matchLength - 1) - startPos;
+
+        for (int j = 0; j < gap; j++) {
+          outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
           lookaheadNextRead++;
+        }
       }
     }
 

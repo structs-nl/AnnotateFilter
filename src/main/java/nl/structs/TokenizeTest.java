@@ -1,4 +1,4 @@
-package nl.structs;
+package main.java.nl.structs;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.Analyzer;
@@ -6,7 +6,6 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.synonym.SynonymGraphFilter;
 import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.util.CharsRef;
-
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
@@ -33,11 +32,11 @@ public class TokenizeTest {
 
       var annotations = new LinkedList<AnnotateFilter.Annotation>();
       
-      annotations.add(new AnnotateFilter.Annotation(1, 6, "concept1"));
-      annotations.add(new AnnotateFilter.Annotation(2, 40, "concept5"));
-      annotations.add(new AnnotateFilter.Annotation(8, 14, "concept"));
-      annotations.add(new AnnotateFilter.Annotation(15, 23, "concept2"));
-      annotations.add(new AnnotateFilter.Annotation(35, 42, "concept3"));
+      annotations.add(new AnnotateFilter.Annotation(5, 6, "concept1"));
+      annotations.add(new AnnotateFilter.Annotation(10, 11, "concept3"));
+      annotations.add(new AnnotateFilter.Annotation(10, 40, "concept2"));
+      annotations.add(new AnnotateFilter.Annotation(18, 20, "concept32"));
+      annotations.add(new AnnotateFilter.Annotation(18, 30, "concept5"));
 
       tokenStream = new AnnotateFilter(tokenStream, annotations);
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package nl.structs;
+package main.java.nl.structs;
 
 import java.io.IOException;
 
