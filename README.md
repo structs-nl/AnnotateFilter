@@ -6,6 +6,18 @@ Inspired by this, we present AnnotateFilter, a TokenFilter that makes it possibl
 
 For instance, if we know that "concept1" is mentioned at characters 5 to 9 in the original text, we can add the term "concept1" in the TokenStream, referring to opsition 5 to 9 in the original text. This term is added to the TokenStream, where in this case are two terms already: "is" and "a". "concept1" does not replace these terms. The term is added to the normally linear TokenStream, making it a graph. A directed graph actually. Because "concept1" is simply a term, we can search for it just as we search for other terms.
 
+The following TokenStream consists of the following text and annotations:
+
+"This is a test of the tokenization process"
+
+- from: 5 to: 9, term: "concept1"
+- from: 10, to: 14, term: "concept3"
+- from: 10, to: 42, term: "concept2"
+- from: 18, to: 21, term: "concept32"
+- from: 18, to: 34, term: "concept5"
+- from: 35, to: 42, term: "concept8"
+
+
 <img src="./graph.svg">
 
 
