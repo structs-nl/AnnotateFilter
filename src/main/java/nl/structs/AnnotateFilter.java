@@ -176,7 +176,7 @@ AnnotateFilter extends TokenFilter {
       // Fast path: parse pulled one token, but it didn't match
       // the start for any annotations, so we now return it "live" w/o having
       // cloned all of its atts:
-      System.out.println(" fast path: return live token");
+      //System.out.println(" fast path: return live token");
       if (finished) {
         // System.out.println(" syn: ret END");
         return false;
@@ -223,7 +223,7 @@ AnnotateFilter extends TokenFilter {
     if (token.state != null) {
       // This is an original input token (keepOrig=true case):
       restoreState(token.state);
-      System.out.println(" release token " + termAtt.toString());
+      // System.out.println(" release token " + termAtt.toString());
 
       // System.out.println(" startOffset=" + offsetAtt.startOffset() + " endOffset="
       // +
@@ -237,7 +237,7 @@ AnnotateFilter extends TokenFilter {
       typeAtt.setType(TOKEN_TYPE);
       posIncrAtt.setPositionIncrement(token.posIncrement);
       posLenAtt.setPositionLength(token.endPos - token.startPos); // TODO check
-      System.out.println(" release token " + token.term + " posIncr=" + token.posIncrement + " posLen=" + (token.endPos - token.startPos));
+      // System.out.println(" release token " + token.term + " posIncr=" + token.posIncrement + " posLen=" + (token.endPos - token.startPos));
     }
   }
 
@@ -262,7 +262,7 @@ AnnotateFilter extends TokenFilter {
       // lookahead.getMaxPos());
 
       // Pull next token's chars:
-      String termText;
+      //String termText;
       //final int bufferLen;
       final int inputEndOffset;
       final int inputStartOffset;
@@ -271,7 +271,7 @@ AnnotateFilter extends TokenFilter {
         // Still in our lookahead buffer
         BufferedInputToken token = lookahead.get(lookaheadUpto);
         lookaheadUpto++;
-        termText = token.term.toString();
+       // termText = token.term.toString();
         //bufferLen = token.term.length();
         inputEndOffset = token.endOffset;
         inputStartOffset = token.startOffset;
@@ -291,7 +291,7 @@ AnnotateFilter extends TokenFilter {
         } else if (input.incrementToken()) {
           // System.out.println(" input.incrToken");
           liveToken = true;
-          termText = termAtt.toString();
+          //termText = termAtt.toString();
           //bufferLen = termAtt.length();
           inputStartOffset = offsetAtt.startOffset();
           inputEndOffset = offsetAtt.endOffset();
@@ -319,7 +319,6 @@ AnnotateFilter extends TokenFilter {
       // - endpos is now set to 0, but we dont know if this is the final value. That's why it's partial.
 
       if (currentAnnotation == null) {
-          // start iterating
           currentAnnotation = annotationIterator.next();
           // System.out.println(currentAnnotation.annotation);
       }
@@ -330,6 +329,8 @@ AnnotateFilter extends TokenFilter {
         matches.add(
           new BufferedOutputToken(currentAnnotation.annotation, matchLength - 1,0, currentAnnotation.startOffset, currentAnnotation.endOffset,0, true)
         );
+
+        // see if there are other annotations starting at the same token:
 
         while (annotationIterator.hasNext()) {
             currentAnnotation = annotationIterator.next();

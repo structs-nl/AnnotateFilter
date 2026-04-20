@@ -32,11 +32,12 @@ public class TokenizeTest {
 
       var annotations = new LinkedList<AnnotateFilter.Annotation>();
       
-      annotations.add(new AnnotateFilter.Annotation(5, 6, "concept1"));
-      annotations.add(new AnnotateFilter.Annotation(10, 11, "concept3"));
-      annotations.add(new AnnotateFilter.Annotation(10, 40, "concept2"));
-      annotations.add(new AnnotateFilter.Annotation(18, 20, "concept32"));
-      annotations.add(new AnnotateFilter.Annotation(18, 30, "concept5"));
+      annotations.add(new AnnotateFilter.Annotation(5, 9, "concept1"));
+      annotations.add(new AnnotateFilter.Annotation(10, 14, "concept3"));
+      annotations.add(new AnnotateFilter.Annotation(10, 42, "concept2"));
+      annotations.add(new AnnotateFilter.Annotation(18, 21, "concept32"));
+      annotations.add(new AnnotateFilter.Annotation(18, 34, "concept5"));
+      annotations.add(new AnnotateFilter.Annotation(35, 42, "concept8"));
 
       tokenStream = new AnnotateFilter(tokenStream, annotations);
 
