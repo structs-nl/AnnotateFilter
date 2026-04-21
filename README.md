@@ -23,9 +23,11 @@ The annotations carry the from and to offset in the original text. The only thin
 
 The TokenFilter is an iterator: a token is pulled by an upstream process and the TokenFilter pulls a token from a downstream process. This makes a lookahead more cumbersome. We started with the code of a TokenFilter that also does matching with lookaheads: Lucene's SynonymGraphFilter. We kept the lookahead structure of this filter, with several buffers, removed the synonym FST matching logic and added our own matching logic. This is in a sense more easy: synonyms can consist of multiple terms, annotations only consist of a single term. It is also more complicated: different annotations can start at the same term and an annotation can span beyond the start of another annotation.
 
+- The start the annotation must be between the start- and end offset of a term
+- The end of the annotation must be between the start- and end offset of a subsequent term
+- The match is added behind the starting token, with a "positionincrement" of 0 and a "positionlength" of the number of tokens of the match
 
 ## How can it be used?
-
 
 - Highlights
 
