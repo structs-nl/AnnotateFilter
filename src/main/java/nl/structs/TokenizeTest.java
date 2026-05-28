@@ -1,6 +1,7 @@
 package main.java.nl.structs;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
@@ -8,6 +9,8 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 
 import org.apache.lucene.tests.analysis.TokenStreamToDot;
+import org.apache.lucene.util.CharsRef;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
@@ -17,15 +20,34 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 
+
+import org.apache.lucene.analysis.synonym.SynonymGraphFilter;
+import org.apache.lucene.analysis.synonym.SynonymMap;
+import org.apache.lucene.util.CharsRef;
+
+
 public class TokenizeTest {
   TokenizeTest() {
     var analyzer = new StandardAnalyzer();
+
     try {
 
       /*
-  
-      var tokenStream = analyzer.tokenStream("field", "This is a test of the tokenization process");
-      
+
+      var synonymBuilder = new SynonymMap.Builder(true);
+      synonymBuilder.add(new CharsRef("snaphanen"), new CharsRef("concept00001"), true);
+      synonymBuilder.add(new CharsRef("axel\u0000anthonij\u0000rosenquest"), new CharsRef("person00001"), true);
+
+      var synonymMap = synonymBuilder.build();
+
+
+      tok = new SynonymGraphFilter(tok, synonymMap, true);
+
+       */
+
+            /* 
+
+      var tokenStream = analyzer.tokenStream("field", "This is a 'test of the tokenization process");  
       var annotations = new LinkedList<AnnotateFilter.Annotation>();
       
       annotations.add(new AnnotateFilter.Annotation(5, 9, "concept1"));
@@ -37,8 +59,8 @@ public class TokenizeTest {
     
       tokenStream = new AnnotateFilter(tokenStream, annotations);
       outputDot(tokenStream);
-      */
 
+      */
 
       var mapper = new ObjectMapper();
 
@@ -67,7 +89,6 @@ public class TokenizeTest {
       
       //outputDot(tokenStream);
       System.out.println("Done");
-
 
 
     } catch (Exception e) {

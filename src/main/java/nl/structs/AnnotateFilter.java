@@ -330,6 +330,7 @@ AnnotateFilter extends TokenFilter {
             // Add new match to the partialMatches list with:
             // - posIncrement 0. We want to be able to add more than one annotation starting here. the increment is left to the original token
             //   TODO Check this behaviour!
+            
             // - startOffset and endOffset are used from the annotation. They are pointers into the original text.
             // - endpos is now set to 0, but we dont know if this is the final value. That's why it's partial.
 
@@ -337,9 +338,10 @@ AnnotateFilter extends TokenFilter {
             var startPos = matchLength - 1;
             var endPos = 0;
 
-            // If we are considering the first match of a set of matches:
             // check if the annotation starts before the start of the token
             // This implies that the token should not be outputted before the annotation in the resulting TokenStream
+
+            // TODO: it is very well possible that a consecutive match also is a pretoken match. is this handled correctly?
 
             if (matches.isEmpty() && currentAnnotation.startOffset < inputStartOffset) {
               // the annotation starts before the start of the token. It has a posincrement
