@@ -44,7 +44,7 @@ public class AnnotatedField extends Field {
     public TokenStream tokenStream(Analyzer analyzer, TokenStream reuse) {
 
       var ts = analyzer.tokenStream(name(), stringValue());
-      ts = new AnnotateFilter(ts, this.annotations);
+      //ts = new AnnotateFilter(ts, this.annotations);
       ts = new PayloadTokenLengthFilter(ts);
 
       return ts;

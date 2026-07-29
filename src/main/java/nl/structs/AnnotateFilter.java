@@ -241,6 +241,8 @@ AnnotateFilter extends TokenFilter {
       // matchEndOffset);
       typeAtt.setType(TOKEN_TYPE);
       posIncrAtt.setPositionIncrement(token.posIncrement);
+      if ((token.endPos - token.startPos) <= 0)
+        System.out.print("length zero");
       posLenAtt.setPositionLength(token.endPos - token.startPos); // TODO check
       // System.out.println(" release token " + token.term + " posIncr=" + token.posIncrement + " posLen=" + (token.endPos - token.startPos));
     }
@@ -315,7 +317,6 @@ AnnotateFilter extends TokenFilter {
       matchLength++;
 
       // System.out.println(" cycle term=" + new String(buffer, 0, bufferLen));
-
       // Check if there is a match after reading the token      
 
       // There is a currentAnnotation set in the constructor of AnnotateFilter
@@ -323,9 +324,13 @@ AnnotateFilter extends TokenFilter {
 
       if (currentAnnotation != null) {
         do {
-          if (currentAnnotation.startOffset <= inputEndOffset) {
+
+          if (currentAnnotation.startOffset == 59520 ) {
+            System.out.println("test");
+          }
+
+          if (currentAnnotation.startOffset < inputEndOffset) {
             // the annotation starts before the end of the token
-            // TODO is this check sufficient?
 
             // Add new match to the partialMatches list with:
             // - posIncrement 0. We want to be able to add more than one annotation starting here. the increment is left to the original token
@@ -335,18 +340,42 @@ AnnotateFilter extends TokenFilter {
             // - endpos is now set to 0, but we dont know if this is the final value. That's why it's partial.
 
             var posIncrement = 0;
-            var startPos = matchLength - 1;
+            var startPos = matchLength - 1;              
             var endPos = 0;
+
 
             // check if the annotation starts before the start of the token
             // This implies that the token should not be outputted before the annotation in the resulting TokenStream
 
             // TODO: it is very well possible that a consecutive match also is a pretoken match. is this handled correctly?
 
+            if (preTokenMatch) {
+
+              if (currentAnnotation.startOffset < inputStartOffset) {
+                // Not the first match but also pretoken
+                // the startpos is decremented              
+                startPos = startPos - 1;
+
+
+              } else {
+                // not a pretoken match,
+                System.out.print("no pretoken");
+                startPos = startPos + 1;
+
+              }
+
+            }
+
             if (matches.isEmpty() && currentAnnotation.startOffset < inputStartOffset) {
-              // the annotation starts before the start of the token. It has a posincrement
+              // the annotation starts before the start of the token
+
+              // this is the first match:
+              // - the output of the tokens skips the first token
+              // - the annotation token increments the position
+
               preTokenMatch = true;
               posIncrement = 1;
+
             }
 
             matches.add(
@@ -363,7 +392,7 @@ AnnotateFilter extends TokenFilter {
           }
           
         // stop if there are no more annotations or if the start of the new current annotation is beyond the end of current token
-        } while (currentAnnotation != null && currentAnnotation.startOffset <= inputEndOffset);
+        } while (currentAnnotation != null && currentAnnotation.startOffset < inputEndOffset);
       }
 
       // Check the partialMatches if the current token is the end of any of them
@@ -376,6 +405,8 @@ AnnotateFilter extends TokenFilter {
       for (BufferedOutputToken token : matches) {
         if (token.isPartial && token.endOffset <= inputEndOffset) {
           token.endPos = matchLength;
+          
+
           token.isPartial = false;
         }
         if (token.isPartial) {
@@ -451,6 +482,7 @@ AnnotateFilter extends TokenFilter {
 
     while (posIterator.hasNext()) {
       var startPos = posIterator.next();
+
 
       // first, fill the gap with the previous match position with original tokens
       if (previousPosition > -1) {
