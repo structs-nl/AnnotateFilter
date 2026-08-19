@@ -20,7 +20,6 @@ package main.java.nl.structs;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.ListIterator;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -109,6 +108,7 @@ AnnotateFilter extends TokenFilter {
     public int posLength;
     public int posIncrement;
     public boolean isPartial;
+    public boolean isPretoken;
 
     public BufferedOutputToken(State state) {
 
@@ -124,7 +124,7 @@ AnnotateFilter extends TokenFilter {
       this.isPartial = false;
     }
 
-    public BufferedOutputToken( String term, int startPos, int endPos, int startOffset, int endOffset, int posIncrement, boolean isPartial) {
+    public BufferedOutputToken( String term, int startPos, int endPos, int startOffset, int endOffset, int posIncrement, int posLength, boolean isPartial, boolean isPretoken) {
     
       // constructor for anntation tokens
 
@@ -135,7 +135,9 @@ AnnotateFilter extends TokenFilter {
       this.startOffset = startOffset;
       this.endOffset = endOffset;
       this.posIncrement = posIncrement;
+      this.posLength = posLength;
       this.isPartial = isPartial;
+      this.isPretoken = isPretoken;
     }
   };
 
@@ -241,9 +243,7 @@ AnnotateFilter extends TokenFilter {
       // matchEndOffset);
       typeAtt.setType(TOKEN_TYPE);
       posIncrAtt.setPositionIncrement(token.posIncrement);
-      if ((token.endPos - token.startPos) <= 0)
-        System.out.print("length zero");
-      posLenAtt.setPositionLength(token.endPos - token.startPos); // TODO check
+      posLenAtt.setPositionLength(token.posLength);
       // System.out.println(" release token " + token.term + " posIncr=" + token.posIncrement + " posLen=" + (token.endPos - token.startPos));
     }
   }
@@ -261,8 +261,6 @@ AnnotateFilter extends TokenFilter {
     // How many tokens in the current match
     int matchLength = 0;
     boolean doFinalCapture = false;
-    boolean preTokenMatch = false; // a flag that indicates a match that starts between tokens
-
     int lookaheadUpto = lookaheadNextRead;
 
     while (true) {
@@ -274,12 +272,13 @@ AnnotateFilter extends TokenFilter {
       //final int bufferLen;
       final int inputEndOffset;
       final int inputStartOffset;
+      String termText;
 
       if (lookaheadUpto <= lookahead.getMaxPos()) {
         // Still in our lookahead buffer
         BufferedInputToken token = lookahead.get(lookaheadUpto);
         lookaheadUpto++;
-        //termText = token.term.toString();
+        termText = token.term.toString();
         //bufferLen = token.term.length();
         inputEndOffset = token.endOffset;
         inputStartOffset = token.startOffset;
@@ -299,7 +298,7 @@ AnnotateFilter extends TokenFilter {
         } else if (input.incrementToken()) {
           // System.out.println(" input.incrToken");
           liveToken = true;
-          //termText = termAtt.toString();
+          termText = termAtt.toString();
           //bufferLen = termAtt.length();
           inputStartOffset = offsetAtt.startOffset();
           inputEndOffset = offsetAtt.endOffset();
@@ -324,15 +323,11 @@ AnnotateFilter extends TokenFilter {
 
       if (currentAnnotation != null) {
         do {
-
-          if (currentAnnotation.startOffset == 59520 ) {
-            System.out.println("test");
-          }
-
           if (currentAnnotation.startOffset < inputEndOffset) {
-            // the annotation starts before the end of the token
 
+            // the annotation starts before the end of the token
             // Add new match to the partialMatches list with:
+
             // - posIncrement 0. We want to be able to add more than one annotation starting here. the increment is left to the original token
             //   TODO Check this behaviour!
             
@@ -340,50 +335,25 @@ AnnotateFilter extends TokenFilter {
             // - endpos is now set to 0, but we dont know if this is the final value. That's why it's partial.
 
             var posIncrement = 0;
+            var posLength = 1;
+
             var startPos = matchLength - 1;              
             var endPos = 0;
-
+            var isPretoken = false;
 
             // check if the annotation starts before the start of the token
-            // This implies that the token should not be outputted before the annotation in the resulting TokenStream
-
-            // TODO: it is very well possible that a consecutive match also is a pretoken match. is this handled correctly?
-
-            if (preTokenMatch) {
-
-              if (currentAnnotation.startOffset < inputStartOffset) {
-                // Not the first match but also pretoken
-                // the startpos is decremented              
-                startPos = startPos - 1;
-
-
-              } else {
-                // not a pretoken match,
-                System.out.print("no pretoken");
-                startPos = startPos + 1;
-
-              }
-
-            }
-
-            if (matches.isEmpty() && currentAnnotation.startOffset < inputStartOffset) {
-              // the annotation starts before the start of the token
-
-              // this is the first match:
-              // - the output of the tokens skips the first token
-              // - the annotation token increments the position
-
-              preTokenMatch = true;
+            if (currentAnnotation.startOffset < inputStartOffset) {
+              // The annotation should be outputted before the matching token
+              // The annotation token increments the position
+              isPretoken = true;
               posIncrement = 1;
-
             }
 
             matches.add(
-              new BufferedOutputToken(currentAnnotation.annotation, startPos,endPos, currentAnnotation.startOffset, currentAnnotation.endOffset,posIncrement, true)
+              new BufferedOutputToken(currentAnnotation.annotation, startPos,endPos, currentAnnotation.startOffset, currentAnnotation.endOffset, posIncrement,posLength, true, isPretoken)
             );
 
             // set the next annotation. For this token or the next
-
             if (annotationIterator.hasNext()) {
               currentAnnotation = annotationIterator.next();
             } else {
@@ -404,8 +374,12 @@ AnnotateFilter extends TokenFilter {
 
       for (BufferedOutputToken token : matches) {
         if (token.isPartial && token.endOffset <= inputEndOffset) {
+
           token.endPos = matchLength;
-          
+          token.posLength = token.endPos - token.startPos;
+
+          if (token.posLength  <= 0)
+            System.out.print("length zero. Not good");
 
           token.isPartial = false;
         }
@@ -444,7 +418,7 @@ AnnotateFilter extends TokenFilter {
         capture();
       }
 
-      bufferOutputTokens(matches, matchLength, preTokenMatch);
+      bufferOutputTokens(matches, matchLength);
 
       return true;
     } else {
@@ -458,61 +432,65 @@ AnnotateFilter extends TokenFilter {
    * paths parallel to
    * the input tokens, and buffers them in the output token buffer.
    */
-  private void bufferOutputTokens(LinkedList<BufferedOutputToken> matches, int matchLength, boolean pretokenMatch) {
+  private void bufferOutputTokens(LinkedList<BufferedOutputToken> matches, int matchLength) {
 
-    // We have a list of matches and the tokens that where needed for these matches.
-    // We know there is a start of a match at the current position
+    // We have a list of matched annotations and buffered tokens that where needed for the match
+    // Now we output these tokens and annotations
 
-    // Group the matches by their start position
+    // startPos is the tokenposition for this match, so it starts with 0    
+    // matchLength is the number of tokens involved
+
+    // Group the matches by their start position and iterate them
     SortedSet<Integer> uniqueStartPositions = new TreeSet<Integer>();
     for(BufferedOutputToken token : matches)
       uniqueStartPositions.add(Integer.valueOf(token.startPos));
 
-    // First, output the token that started the match
-    // do not output the token if this is a pre-token match, starting between tokens
-
-    if (! pretokenMatch) {
-      outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
-      lookaheadNextRead++;
-    }
-
-    // then, iterate the grouped startpositions
-    var posIterator  = uniqueStartPositions.iterator();
-    Integer previousPosition = -1;
+    var posIterator = uniqueStartPositions.iterator();
+    int previousPosition = -1;
 
     while (posIterator.hasNext()) {
       var startPos = posIterator.next();
 
-
-      // first, fill the gap with the previous match position with original tokens
+      // first, fill the gap with the previous pos if there is one, minus the token that we add later
       if (previousPosition > -1) {
-
-        int gap = startPos - previousPosition;
-        for (int j = 0; j < gap; j++) {
+        int tokenGap = (startPos - previousPosition) - 1;
+      
+        for (int j = 0; j < tokenGap; j++) {
           outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
           lookaheadNextRead++;
         }
+      } 
+      
+      // then add the pretoken annotations
+      // TODO: multiple prematches should be ordered by their startoffset. I think they are
+
+      for(BufferedOutputToken match : matches) {
+        if (match.isPretoken && Integer.valueOf(match.startPos) == startPos) {
+          outputBuffer.add(match);
+        }
       }
 
-      // then, output all matches starting at this position
+      // then, output the token of this position
+      outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
+      lookaheadNextRead++;
+
+      // then, output all non-pretoken matches
       for(BufferedOutputToken match : matches) {
-        if (Integer.valueOf(match.startPos) == startPos) {
+        if (! match.isPretoken && Integer.valueOf(match.startPos) == startPos) {
           outputBuffer.add(match);
         }
       }
 
       if (posIterator.hasNext()) {
-        // remember the current position as the previous one for the next iteration
         previousPosition = startPos;
 
       } else {
 
-        // last match: fill until the end of the match with original tokens
+        // last step: fill until the end of the match with original tokens
         // TODO check!!
       
-        int gap = (matchLength - 1) - startPos;
-
-        for (int j = 0; j < gap; j++) {
+        int tokenEndGap = (matchLength - 1) - startPos;
+        for (int j = 0; j < tokenEndGap; j++) {
           outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
           lookaheadNextRead++;
         }
