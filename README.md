@@ -41,3 +41,5 @@ The TokenFilter is an iterator: a token is pulled by an upstream process and the
 ## test command
 
 mvn clean compile exec:java -Dexec.mainClass="main.java.nl.structs.TokenizeTest"
+
+
