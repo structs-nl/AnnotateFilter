@@ -69,7 +69,6 @@ AnnotateFilter extends TokenFilter {
     }
   }
 
-  private final LinkedList<Annotation> annotations;
   private ListIterator<Annotation> annotationIterator;
   private Annotation currentAnnotation;
 
@@ -98,37 +97,24 @@ AnnotateFilter extends TokenFilter {
   }
 
   public class BufferedOutputToken {
-
-    public State state;
-    public String term;
-    public int startPos;
-    public int endPos;
-    public int startOffset;
-    public int endOffset;
-    public int posLength;
-    public int posIncrement;
-    public boolean isPartial;
-    public boolean isPretoken;
+    public State state = null;
+    public String term = null;
+    public int startPos = 0;
+    public int endPos = 0;
+    public int startOffset = 0;
+    public int endOffset = 0;
+    public int posLength = 0;
+    public int posIncrement = 0;
+    public boolean isPartial = false;
+    public boolean isPretoken = false;
 
     public BufferedOutputToken(State state) {
-
       // constructor for original input tokens
-
       this.state = state;
-      this.term = null;
-      this.startPos = 0;
-      this.endPos = 0;
-      this.startOffset = 0;
-      this.endOffset = 0;
-      this.posIncrement = 0;
-      this.isPartial = false;
     }
 
     public BufferedOutputToken( String term, int startPos, int endPos, int startOffset, int endOffset, int posIncrement, int posLength, boolean isPartial, boolean isPretoken) {
-    
       // constructor for anntation tokens
-
-      this.state = null;
       this.term = term;
       this.startPos = startPos;
       this.endPos = endPos;
@@ -144,17 +130,14 @@ AnnotateFilter extends TokenFilter {
   public AnnotateFilter(TokenStream input,  LinkedList<Annotation> annotations) {
     super(input);
 
-    this.annotations = annotations;
-    this.annotationIterator = this.annotations.listIterator();
+    // We assume there are annotations
+    // We assume the annotationlist is ordered on the start offset
+
+    this.annotationIterator = annotations.listIterator();
 
     if (this.annotationIterator.hasNext()) {
       this.currentAnnotation = this.annotationIterator.next();
     }
-
-    // TODO We assume there are annotations. If there is no current token; shortcut the incrementToken
-    // We assume the annotationlist is ordered on the start offset
-    // TODO Add a sort option
-
   }
 
   @Override
@@ -249,7 +232,7 @@ AnnotateFilter extends TokenFilter {
   }
 
   /**
-   * Scans the next input token(s) to see if a synonym matches. Returns true if a
+   * Scans the next input token(s) to see if one or more annotation(s) matche. Returns true if a
    * match was found.
    */
   private boolean parse() throws IOException {
@@ -267,19 +250,16 @@ AnnotateFilter extends TokenFilter {
       // System.out.println(" cycle lookaheadUpto=" + lookaheadUpto + " maxPos=" +
       // lookahead.getMaxPos());
 
-      // Pull next token's chars:
+      // Pull next token
       // String termText;
-      //final int bufferLen;
       final int inputEndOffset;
       final int inputStartOffset;
-      String termText;
 
       if (lookaheadUpto <= lookahead.getMaxPos()) {
         // Still in our lookahead buffer
         BufferedInputToken token = lookahead.get(lookaheadUpto);
         lookaheadUpto++;
-        termText = token.term.toString();
-        //bufferLen = token.term.length();
+        //termText = token.term.toString()
         inputEndOffset = token.endOffset;
         inputStartOffset = token.startOffset;
 
@@ -298,8 +278,7 @@ AnnotateFilter extends TokenFilter {
         } else if (input.incrementToken()) {
           // System.out.println(" input.incrToken");
           liveToken = true;
-          termText = termAtt.toString();
-          //bufferLen = termAtt.length();
+          //termText = termAtt.toString();
           inputStartOffset = offsetAtt.startOffset();
           inputEndOffset = offsetAtt.endOffset();
           lookaheadUpto++;
@@ -420,6 +399,14 @@ AnnotateFilter extends TokenFilter {
 
       bufferOutputTokens(matches, matchLength);
 
+      // System.out.println(" precmatch; set lookaheadNextRead=" + lookaheadNextRead +
+      // " now max="
+      // + lookahead.getMaxPos());
+      lookahead.freeBefore(lookaheadNextRead);
+      // System.out.println(" match; set lookaheadNextRead=" + lookaheadNextRead + "
+      // now max=" +
+      // lookahead.getMaxPos());
+
       return true;
     } else {
       // System.out.println(" no match; lookaheadNextRead=" + lookaheadNextRead);
@@ -433,17 +420,19 @@ AnnotateFilter extends TokenFilter {
    * the input tokens, and buffers them in the output token buffer.
    */
   private void bufferOutputTokens(LinkedList<BufferedOutputToken> matches, int matchLength) {
+    
+    // Output the matched annotations and the buffered tokens that where needed
 
-    // We have a list of matched annotations and buffered tokens that where needed for the match
-    // Now we output these tokens and annotations
-
-    // startPos is the tokenposition for this match, so it starts with 0    
     // matchLength is the number of tokens involved
 
-    // Group the matches by their start position and iterate them
+    // Group the matches by their start position
+    // startPos is the tokenposition for this match, so it starts with 0    
+
     SortedSet<Integer> uniqueStartPositions = new TreeSet<Integer>();
-    for(BufferedOutputToken token : matches)
-      uniqueStartPositions.add(Integer.valueOf(token.startPos));
+    for(BufferedOutputToken match : matches)
+      uniqueStartPositions.add(Integer.valueOf(match.startPos));
+
+    //  and iterate the start positions
 
     var posIterator = uniqueStartPositions.iterator();
     int previousPosition = -1;
@@ -451,7 +440,7 @@ AnnotateFilter extends TokenFilter {
     while (posIterator.hasNext()) {
       var startPos = posIterator.next();
 
-      // first, fill the gap with the previous pos if there is one, minus the token that we add later
+      // fill the gap with the previous pos if there is one, minus the token that we add later
       if (previousPosition > -1) {
         int tokenGap = (startPos - previousPosition) - 1;
       
@@ -461,7 +450,7 @@ AnnotateFilter extends TokenFilter {
         }
       } 
       
-      // then add the pretoken annotations
+      // add pretoken matches
       // TODO: multiple prematches should be ordered by their startoffset. I think they are
 
       for(BufferedOutputToken match : matches) {
@@ -470,11 +459,11 @@ AnnotateFilter extends TokenFilter {
         }
       }
 
-      // then, output the token of this position
+      // output the token of this position
       outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
       lookaheadNextRead++;
 
-      // then, output all non-pretoken matches
+      // output non-pretoken matches
       for(BufferedOutputToken match : matches) {
         if (! match.isPretoken && Integer.valueOf(match.startPos) == startPos) {
           outputBuffer.add(match);
@@ -489,21 +478,13 @@ AnnotateFilter extends TokenFilter {
         // last step: fill until the end of the match with original tokens
         // TODO check!!
       
-        int tokenEndGap = (matchLength - 1) - startPos;
-        for (int j = 0; j < tokenEndGap; j++) {
+        int tokenGap = (matchLength - 1) - startPos;
+        for (int j = 0; j < tokenGap; j++) {
           outputBuffer.add(new BufferedOutputToken(lookahead.get(lookaheadNextRead).state)); 
           lookaheadNextRead++;
         }
       }
     }
-
-    // System.out.println(" precmatch; set lookaheadNextRead=" + lookaheadNextRead +
-    // " now max="
-    // + lookahead.getMaxPos());
-    lookahead.freeBefore(lookaheadNextRead);
-    // System.out.println(" match; set lookaheadNextRead=" + lookaheadNextRead + "
-    // now max=" +
-    // lookahead.getMaxPos());
   }
 
   /** Buffers the current input token into lookahead buffer. */
