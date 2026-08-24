@@ -51,3 +51,5 @@ https://github.com/apache/lucene/issues/5380
 ## test command
 
 mvn clean compile exec:java -Dexec.mainClass="main.java.nl.structs.TokenizeTest"
+
+
