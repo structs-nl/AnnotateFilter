@@ -4,7 +4,8 @@ As Mike Mccandles describes in his <a href="https://blog.mikemccandless.com/2012
 
 Inspired by this, we present AnnotateFilter, a TokenFilter that makes it possible to add annotation to a TokenStream. By annotations we mean terms that have a start and end offset in the text that was the source of the TokenStream.
 
-For instance, if have "concept1" at characters 5 to 9 in the original text, we can add the term "concept1" in the TokenStream. The term is added to the normally linear TokenStream, making it a graph. A directed graph actually. Because "concept1" is simply a term, we can search for it just as we search for other terms.
+For instance, if have "concept1" at characters 5 to 9 in the original text, we can add the term "concept1" in the TokenStream. The term is added to the normally linear TokenStream, making it a graph
+"concept1" is simply a term, we can search for it just as we search for other terms.
 
 The following TokenStream consists of the text "This is a test of the tokenization process" and annotations:
 
@@ -23,20 +24,29 @@ The annotations carry the from and to offset in the original text. The only thin
 
 The TokenFilter is an iterator: a token is pulled by an upstream process and the TokenFilter pulls a token from a downstream process. This makes a lookahead more cumbersome. We started with the code of a TokenFilter that also does matching with lookaheads: Lucene's SynonymGraphFilter. We kept the lookahead structure of this filter, with several buffers, removed the synonym FST matching logic and added our own matching logic. This is in a sense more easy: synonyms can consist of multiple terms, annotations only consist of a single term. It is also more complicated: different annotations can start at the same term and an annotation can span beyond the start of another annotation.
 
+TODO: describe the lookahead proces, resulting in a set of matched annotations and eaten tokens.
+
+The eaten tokens needs to be reconstructed, with the annotations added, ready for the stream consumer.
+This is done in BufferOutputTokens
+
 - The start the annotation must be between the start- and end offset of a term
 - The end of the annotation must be between the start- and end offset of a subsequent term
 - The match is added behind the starting token, with a "positionincrement" of 0 and a "positionlength" of the number of tokens of the match
 
+TODO: add some example graphs
+
+- match with multiple tokens
+
 ## How can it be used?
 
 - Highlights
-
 - PositionLength encoded in the payload and decoded in a query module
 
+https://github.com/apache/lucene-solr/pull/772/
 
-## Further work
+https://github.com/apache/lucene/issues/952/
 
-
+https://github.com/apache/lucene/issues/5380
 
 ## test command
 

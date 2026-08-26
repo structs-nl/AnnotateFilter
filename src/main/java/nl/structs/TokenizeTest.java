@@ -66,20 +66,23 @@ public class TokenizeTest {
 
       System.out.println("Loading annotations");
 
-      var tags = mapper.readTree(new File("./testdata/3598/entity-tags.json"));
+      var file = mapper.readTree(new File("../testdata/3598.index.json"));
+
+      var doc = file.at("/documents/3/fields/8");
+
+      var text = doc.at("/value").textValue();
+      var tags = doc.at("/annotations");
+
       var annotations = new LinkedList<AnnotateFilter.Annotation>();
       
       for (var tag : tags) {
-        var start = tag.get("start_in_doc").asInt();
-        var end = tag.get("end_in_doc").asInt();
+        var start = tag.get("from").asInt();
+        var end = tag.get("to").asInt();
         var concept = tag.get("tag").asText();
         annotations.add(new AnnotateFilter.Annotation(start, end, concept));
       }
 
       System.out.println("Loaded " + annotations.size() + " annotations");
-
-      System.out.println("Reading file");
-      var text = Files.readString(Paths.get("./testdata/3598/document.txt"));
 
       System.out.println("Tokenizing, annotating and outputting");
       var tokenStream = analyzer.tokenStream("field", text);
@@ -122,9 +125,10 @@ public class TokenizeTest {
     while (tokenStream.incrementToken()) {
       var string =  offsetAttribute.startOffset() + "\t" + 
                     offsetAttribute.endOffset() + "\t" +
-                    termAttribute.toString() + "\t" +
                     positionIncrementAttribute.getPositionIncrement() + "\t" +
-                    positionLengthAttribute.getPositionLength();
+                    positionLengthAttribute.getPositionLength() + "\t" +
+                    termAttribute.toString();
+
       writer.println(string);
     }
     writer.close();

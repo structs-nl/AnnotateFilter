@@ -53,7 +53,7 @@ public final class PayloadTokenLengthFilter extends TokenFilter {
 
     if (lengthAttribute.getPositionLength() > 1) {
       encodeLength(lengthAttribute.getPositionLength());
-      System.out.println(lengthAttribute.getPositionLength());
+      //System.out.println(lengthAttribute.getPositionLength());
       payloadAttribute.setPayload(encodedLength);
     }
 
